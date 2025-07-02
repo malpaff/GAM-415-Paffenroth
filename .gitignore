@@ -1,0 +1,84 @@
+# Unreal Engine Cache and Intermediate Files
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+Binaries/
+Source/Developers/
+*.VC.db
+*.sln
+*.suo
+*.user
+*.sdf
+*.opensdf
+*.VC.opendb
+*.VC.db-wal
+*.VC.db-journal
+
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+desktop.ini
+
+# Ignore Unreal Engine auto-generated files
+*.xcodeproj
+*.vs/
+.vscode/
+.idea/
+
+# Ignore Unreal Engine temporary files
+*.log
+*.bak
+*.tmp
+*.backup
+*.idd
+*.lock
+*.session
+*.undo
+*.uasset.tmp
+*.umap.tmp
+
+# Ignore Unreal Engine cooked content
+Saved/Cooked/
+Saved/StagedBuilds/
+Saved/Autosaves/
+
+# Ignore Unreal Engine compiled shader cache
+Shaders/WorkingDirectory/
+
+# Ignore Unreal Engine developer settings
+Config/DefaultEditor.ini
+Config/DefaultEditorUserSettings.ini
+Config/DefaultEditorPerProjectUserSettings.ini
+
+# Ignore Unreal Engine localization files
+Localization/Backups/
+
+# Ignore Git LFS tracked files if not explicitly added
+.gitattributes
+*.pdb
+*.exe
+*.dll
+*.lib
+*.app
+*.dylib
+*.so
+*.a
+
+# Ignore Plugin and Marketplace assets cache
+Plugins/Developer/
+Plugins/Editor/
+
+# Ignore Android and iOS build files
+Build/Android/
+Build/IOS/
+
+# Ignore custom assets, adjust based on project needs
+*.uasset
+*.umap
+
+# Keep Config and Content but ignore temporary or generated files
+!Config/
+!Content/
