@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NiagaraSystem.h"
 #include "firstperson415Projectile.generated.h"
 
 class USphereComponent;
@@ -23,7 +24,7 @@ class Afirstperson415Projectile : public AActor
 	UProjectileMovementComponent* ProjectileMovement;
 
 	// Projectile Mesh
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		UStaticMeshComponent* ballMesh;
 
 	// Material for splat decal
@@ -42,6 +43,10 @@ protected:
 	// Material is assigned to the mesh before runtime
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
 		UMaterialInterface* projMat;
+
+	// Niagara particle system that spawns on impact
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
+		UNiagaraSystem* colorP;
 
 public:
 	Afirstperson415Projectile();

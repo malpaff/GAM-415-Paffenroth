@@ -6,12 +6,14 @@
 #include "Components/SphereComponent.h"
 #include "Components/DecalComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 Afirstperson415Projectile::Afirstperson415Projectile() 
 {
 	// Use a sphere as a simple collision representation
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
-	CollisionComp->InitSphereRadius(5.0f);
+	CollisionComp->InitSphereRadius(3.0f);
 	CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
 	CollisionComp->OnComponentHit.AddDynamic(this, &Afirstperson415Projectile::OnHit);		// set up a notification for when this component hits something blocking
 
@@ -29,16 +31,17 @@ Afirstperson415Projectile::Afirstperson415Projectile()
 	ballMesh->SetupAttachment(CollisionComp);
 
 	// Load the sphere mesh asset and assign it to mesh component
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Engine/BasicShapes/Sphere"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 
 	if (SphereVisualAsset.Succeeded())
 	{
 		ballMesh->SetStaticMesh(SphereVisualAsset.Object);
 		ballMesh->SetRelativeLocation(FVector::ZeroVector);
-		ballMesh->SetRelativeScale3D(FVector(0.3f)); // Scale as needed
+		ballMesh->SetRelativeScale3D(FVector(0.3f));
 	}
 
-	// Use a ProjectileMovementComponent to govern this projectile's movement
+	// Use a ProjectileMovementComponent to govern this projectile's movement    // Only CollisionComp will handle collisions
+	ballMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = CollisionComp;
 	ProjectileMovement->InitialSpeed = 3000.f;
@@ -77,54 +80,40 @@ void Afirstperson415Projectile::BeginPlay()
 
 void Afirstperson415Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && OtherComp->IsSimulatingPhysics())
+
+	if (OtherActor && OtherActor != this)
 	{
-		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+		if (!OtherActor || OtherActor == this) return;
 
-		Destroy();
-	}
+		// Spawn Niagara particle burst
+		if (colorP)
+		{
+			UNiagaraComponent* ParticleComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), colorP, Hit.Location, Hit.Normal.Rotation(), FVector(1.f), true, true, ENCPoolMethod::AutoRelease);
 
-	if (OtherActor != nullptr)
-	{
-		// Choose a random frame for the decal
-		float frameNum = UKismetMathLibrary::RandomFloatInRange(0.f, 3.f);
-
+			if (ParticleComp)
+			{
+				// Send the projectile's random color into Niagara
+				ParticleComp->SetVariableLinearColor(FName("RandomColor"), randColor);
+			}
+		}
+		// Spawn Decal
 		if (baseMat)
 		{
-			// Spawns decal at hit point
-			UDecalComponent* Decal = UGameplayStatics::SpawnDecalAtLocation(
-				GetWorld(),
-				baseMat,
-				FVector(FMath::FRandRange(20.f, 40.f)),
-				Hit.Location,
-				Hit.Normal.Rotation(),
-				5.f // Lifespan in seconds
-			);
+			float frameNum = UKismetMathLibrary::RandomFloatInRange(0.f, 3.f);
+
+			UDecalComponent* Decal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), baseMat, FVector(FMath::FRandRange(25.f, 40.f)), Hit.Location, Hit.Normal.Rotation(), 5.f);
 
 			if (Decal)
 			{
-				// Creates a dynamic material for the decal
 				UMaterialInstanceDynamic* MatInstance = Decal->CreateDynamicMaterialInstance();
 				if (MatInstance)
 				{
-					// Applies the projectile color and frame to decal
 					MatInstance->SetVectorParameterValue("Color", randColor);
 					MatInstance->SetScalarParameterValue("Frame", frameNum);
 				}
-				else
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Decal DMI creation failed"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Decal spawn failed"));
 			}
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("baseMat is null"));
-		}
+		// Destroy projectile
+		Destroy();
 	}
 }
