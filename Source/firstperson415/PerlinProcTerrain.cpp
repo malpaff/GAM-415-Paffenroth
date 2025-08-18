@@ -14,6 +14,7 @@ APerlinProcTerrain::APerlinProcTerrain()
 	// Procedural Mesh Component
 	ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>("Procedural Mesh");
 	RootComponent = ProcMesh;
+	ProcMesh->bUseAsyncCooking = true;
 }
 
 // Called when the game starts or when spawned
@@ -30,8 +31,17 @@ void APerlinProcTerrain::BeginPlay()
 	TArray<FProcMeshTangent> TempTangents;
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(Vertices, Triangles, UV0, TempNormals, TempTangents);
 
+	// Collision Setup
+	ProcMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	ProcMesh->SetCollisionObjectType(ECC_WorldStatic);
+	ProcMesh->SetCollisionResponseToAllChannels(ECR_Block);
+	ProcMesh->bUseComplexAsSimpleCollision = true;
+	ProcMesh->SetNotifyRigidBodyCollision(true);
+	ProcMesh->SetGenerateOverlapEvents(true);
+	ProcMesh->bUseComplexAsSimpleCollision = true;
+
 	// Creates the mesh
-	ProcMesh->CreateMeshSection(sectionID, Vertices, Triangles, TempNormals, UV0, UpVertexColors, TempTangents, true);
+	ProcMesh->CreateMeshSection(sectionID, Vertices, Triangles, TempNormals, UV0, UpVertexColors, TempTangents, /*bCreateCollision=*/true);
 	
 	// Material assignment
 	if (Mat)
@@ -48,18 +58,17 @@ void APerlinProcTerrain::Tick(float DeltaTime)
 }
 
 // Deforms terrain around an impact point
-void APerlinProcTerrain::AlterMesh(FVector impactPoint)
+void APerlinProcTerrain::AlterMesh(const FVector ImpactPoint)
 {
+	const FVector LocalHit = ProcMesh->GetComponentTransform().InverseTransformPosition(ImpactPoint);
 
-	FVector tempVector = impactPoint - this->GetActorLocation();
+	const float RadiusSq = radius * radius;
 
-	for (int i = 0; i < Vertices.Num(); i++)
+	for (int32 i = 0; i < Vertices.Num(); ++i)
 	{
-		 
-
-		if (FVector(Vertices[i] - tempVector).Size() < radius)
+		if (FVector::DistSquared(Vertices[i], LocalHit) <= RadiusSq)
 		{
-			Vertices[i] = Vertices[i] - Depth;
+			Vertices[i] -= Depth;
 		}
 	}
 
@@ -70,6 +79,11 @@ void APerlinProcTerrain::AlterMesh(FVector impactPoint)
 
 	// Updates mesh
 	ProcMesh->UpdateMeshSection(sectionID, Vertices, TempNormals, UV0, UpVertexColors, TempTangents);
+	ProcMesh->RecreatePhysicsState();
+
+	// Debug
+	UE_LOG(LogTemp, Warning, TEXT("AlterMesh: LocalHit=%s radius=%.1f depth=%s"),
+		*LocalHit.ToString(), radius, *Depth.ToString());
 }
 
 // Creates a grid of vertices
@@ -80,9 +94,8 @@ void APerlinProcTerrain::CreateVertices()
 		for (int Y = 0; Y <= YSize; Y++)
 		{
 			float Z = FMath::PerlinNoise2D(FVector2D(X * NoiseScale + 0.1, Y * NoiseScale + 0.1)) * ZMultiplier;
-			GEngine->AddOnScreenDebugMessage(-1, 999.0f, FColor::Yellow, FString::Printf(TEXT("Z %f"), Z));
 			Vertices.Add(FVector(X * Scale, Y * Scale, Z));
-			UV0.Add(FVector2D(X * UVScale, Y * UVScale));
+			UV0.Add(FVector2D((float)X / (float)XSize, (float)Y / (float)YSize) * UVScale);
 		}
 	}
 }
