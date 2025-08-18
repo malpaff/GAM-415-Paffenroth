@@ -22,7 +22,7 @@ public:
 		int XSize = 0;
 
 	UPROPERTY(EditAnywhere, Meta = (ClampMin = 0))
-	int YSize = 0;
+		int YSize = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ClampMin = 0))
 		float ZMultiplier = 1.0f;
